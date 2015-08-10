@@ -75,10 +75,27 @@ KOALA_BACKGROUND_DATA = KOALA_BITMAP_DATA + $2710
 	jsr init
 
 @mainloop:
-	lda sync
-:	cmp sync
-	beq :-
+	lda sync50hz
+	beq :+
+	jsr dosync50hz
 
+:	lda sync
+	beq :+
+	jsr dosync
+
+:
+	; key pressed ?
+	jsr get_key
+	bcc @mainloop
+	cmp #$47		; space
+	bne @mainloop
+
+	; do something
+	jmp @mainloop
+
+dosync:
+	lda #$00
+	sta sync
 .if (DEBUG & 1)
 	dec $d020
 .endif
@@ -88,15 +105,20 @@ KOALA_BACKGROUND_DATA = KOALA_BITMAP_DATA + $2710
 .if (DEBUG & 1)
 	inc $d020
 .endif
+	rts
 
-	; key pressed ?
-	jsr get_key
-	bcc @mainloop
-	cmp #$47		; space
-	bne @mainloop
+dosync50hz:
+	lda #$00
+	sta sync50hz
+.if (DEBUG & 2)
+	inc $d020
+.endif
+	jsr MUSIC_PLAY
+.if (DEBUG & 2)
+	dec $d020
+.endif
+	rts
 
-	; do something
-	jmp @mainloop
 
 
 ;--------------------------------------------------------------------------
@@ -117,13 +139,6 @@ irq:
 	lda $dc0d		; clear the interrupt
 	cli
 
-.if (DEBUG & 2)
-	inc $d020
-.endif
-	jsr MUSIC_PLAY
-.if (DEBUG & 2)
-	dec $d020
-.endif
 	inc sync50hz
 
 	pla			; restores A, X, Y
@@ -197,7 +212,6 @@ irq:
 	sta $d011
 
 	inc sync
-
 
 	; we have to re-schedule irq from irq basically because
 	; we are using a double IRQ
@@ -661,7 +675,6 @@ save_color_bottom = *+1
 ; Args: -
 ;--------------------------------------------------------------------------
 .proc init_scroll_vars
-	inc sync
 	lda #$07
 	sta smooth_scroll_x
 	lda #$80
@@ -719,7 +732,7 @@ raster_colors_bottom:
 	.byte $01,$01,$01,$01,$07,$07,$0f,$0f
 	.byte $0a,$0a,$08,$08,$02,$02,$09,$09
 	; FIXME: ignore, for overflow
-	.byte 0
+	.byte 0,0
 
 TOTAL_RASTER_LINES = raster_colors_bottom-raster_colors_top
 
@@ -807,7 +820,7 @@ empty_char:
 	 .incbin "res/1_45_Tune.sid",$7e
 
 .segment "INTRO_GFX"
-	 .incbin "res/the-muni-race.kla",2
+	 .incbin "res/sdkbox.kla",2
 
 .segment "INTRO_CHARSET"
 	.incbin "res/font-boulderdash-1writer.bin"
