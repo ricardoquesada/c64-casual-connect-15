@@ -25,10 +25,12 @@
 ; bitwise: 1=raster-sync code. 2=50hz code (music)
 DEBUG = 0
 
-RASTER_START = 50
-
 SCROLL_AT_LINE = 18
 ROWS_PER_CHAR = 7
+
+RASTER_SDKBOX_START = 40
+RASTER_SDKBOX_END = 180
+RASTER_SCROLLER_START = 50 + SCROLL_AT_LINE*8-1
 
 SCREEN_TOP = $0400 + SCROLL_AT_LINE * 40
 
@@ -153,13 +155,14 @@ irq_bkg_begin:
 
 	lda #$01
 	sta $d020
+	sta $d021
 
 	ldx #<irq_bkg_end
 	ldy #>irq_bkg_end
 	stx $fffe
 	sty $ffff
 
-	lda #151
+	lda #RASTER_SDKBOX_END
 	sta $d012
 
 	asl $d019
@@ -204,14 +207,16 @@ irq_bkg_end:
 
 	lda #$00
 	sta $d020
+	sta $d021
 
 	ldx #<irq_scroller
 	ldy #>irq_scroller
 	stx $fffe
 	sty $ffff
 
-	lda #RASTER_START+SCROLL_AT_LINE*8-2
+	lda #RASTER_SCROLLER_START
 	sta $d012
+
 
 	asl $d019
 	cli
@@ -280,7 +285,8 @@ irq_scroller:
 	; color
 	lda #$00
 	sta $d020
-	lda KOALA_BACKGROUND_DATA
+;	lda KOALA_BACKGROUND_DATA
+	lda #00
 	sta $d021
 
 	; no scroll, multi-color
@@ -291,17 +297,18 @@ irq_scroller:
 	lda #%00111011
 	sta $d011
 
-	inc sync
-
 	lda #<irq_bkg_begin
 	sta $fffe
 	lda #>irq_bkg_begin
 	sta $ffff
 
-	lda #49 		; white border must start here
+	lda #RASTER_SDKBOX_START	; white border must start here
 	sta $d012
 
 	asl $d019
+
+	inc sync
+
 	cli
 
 	pla			; restores A, X, Y
@@ -666,7 +673,7 @@ save_color_bottom = *+1
 	sta $ffff
 
 	; raster interrupt
-	lda #49
+	lda #RASTER_SDKBOX_START
 	sta $d012
 
 	; clear interrupts and ACK irq
@@ -827,8 +834,9 @@ scroller_text_ptr_hi:	.byte 0
 colorwash_delay:	.byte COLORWASH_SPEED
 
 scroller_text:
-	scrcode "            sdkbox, the first an only SDK available for all the 64-bit machines, including the commdore 64. "
-	scrcode "  iOS 64-bit support: yes...  android 64-bit: yes...  commodore 64 support: yes  "
+	scrcode "            sdkbox, the first an only sdk available for all the 64-bit / 64 machines "
+	scrcode "  ios 64-bit support: yes...  android 64-bit: yes...  commodore 64 support: yes!!!    "
+	scrcode "  download sdkbox from sdkbox.com "
 	.byte $ff
 
 char_frames:
