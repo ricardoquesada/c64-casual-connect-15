@@ -122,9 +122,9 @@ dosync50hz:
 
 
 ;--------------------------------------------------------------------------
-; IRQ handler
+; IRQ handler: background begin
 ;--------------------------------------------------------------------------
-irq:
+irq_bkg_begin:
 	pha			; saves A, X, Y
 	txa
 	pha
@@ -151,9 +151,107 @@ irq:
 @raster:
 	STABILIZE_RASTER
 
-	.repeat 23
-		nop
-	.endrepeat
+	lda #$01
+	sta $d020
+
+	ldx #<irq_bkg_end
+	ldy #>irq_bkg_end
+	stx $fffe
+	sty $ffff
+
+	lda #151
+	sta $d012
+
+	asl $d019
+	cli
+
+	pla			; restores A, X, Y
+	tay
+	pla
+	tax
+	pla
+	rti			; restores previous PC, status
+
+;--------------------------------------------------------------------------
+; IRQ handler: background end
+;--------------------------------------------------------------------------
+irq_bkg_end:
+	pha			; saves A, X, Y
+	txa
+	pha
+	tya
+	pha
+
+	sei
+	asl $d019
+	bcs @raster
+
+	; timer A interrupt
+	lda $dc0d		; clear the interrupt
+	cli
+
+	inc sync50hz
+
+	pla			; restores A, X, Y
+	tay
+	pla
+	tax
+	pla
+	rti			; restores previous PC, status
+
+@raster:
+	STABILIZE_RASTER
+
+	lda #$00
+	sta $d020
+
+	ldx #<irq_scroller
+	ldy #>irq_scroller
+	stx $fffe
+	sty $ffff
+
+	lda #RASTER_START+SCROLL_AT_LINE*8-2
+	sta $d012
+
+	asl $d019
+	cli
+
+	pla			; restores A, X, Y
+	tay
+	pla
+	tax
+	pla
+	rti			; restores previous PC, status
+
+;--------------------------------------------------------------------------
+; IRQ handler: scroller
+;--------------------------------------------------------------------------
+irq_scroller:
+	pha			; saves A, X, Y
+	txa
+	pha
+	tya
+	pha
+
+	sei
+	asl $d019
+	bcs @raster
+
+	; timer A interrupt
+	lda $dc0d		; clear the interrupt
+	cli
+
+	inc sync50hz
+
+	pla			; restores A, X, Y
+	tay
+	pla
+	tax
+	pla
+	rti			; restores previous PC, status
+
+@raster:
+	STABILIZE_RASTER
 
 	; char mode
 	lda #%00011011		; +2
@@ -169,33 +267,15 @@ irq:
 	; raster bars
 	ldx #$00		; +22
 
-	; 7 chars of 8 raster lines
-	; the "+8" in "raster_colors+8" is needed
-	; in order to center the washer effect.
-	; the washer colors has 64 colors, but here we are using only 56 lines (7 rows of 8 lines each)
-	.repeat ROWS_PER_CHAR
-		; 7 "Good" lines: I must consume 63 cycles
-		.repeat 7
-			lda raster_colors+8,x	; +4
-			sta $d021		; +4
-			inx			; +2
-			.repeat 25
-				nop		; +2 * 25
-			.endrepeat
-			bit $00			; +3 = 63 cycles
-		.endrepeat
-		; 1 "Bad lines": I must consume ~20 cycles
-		lda raster_colors+8,x		; +4
-		sta $d021			; +4
-		inx				; +2
-		.repeat 5
-			nop			; +2 * 5 = 20 cycles
-		.endrepeat
-	.endrepeat
-
-	.repeat 23
-		nop
-	.endrepeat
+	ldy #7*8
+:	lda $d012
+:	cmp $d012
+	beq :-
+	lda raster_colors+8,x
+	sta $d021
+	inx
+	dey
+	bne :--
 
 	; color
 	lda #$00
@@ -213,17 +293,16 @@ irq:
 
 	inc sync
 
-	; we have to re-schedule irq from irq basically because
-	; we are using a double IRQ
-	lda #<irq
+	lda #<irq_bkg_begin
 	sta $fffe
-	lda #>irq
+	lda #>irq_bkg_begin
 	sta $ffff
 
-	lda #RASTER_START+SCROLL_AT_LINE*8-2
+	lda #49 		; white border must start here
 	sta $d012
 
 	asl $d019
+	cli
 
 	pla			; restores A, X, Y
 	tay
@@ -581,13 +660,13 @@ save_color_bottom = *+1
 	; irq handler
 	; both for raster and timer interrupts
 	;
-	lda #<irq
+	lda #<irq_bkg_begin
 	sta $fffe
-	lda #>irq
+	lda #>irq_bkg_begin
 	sta $ffff
 
 	; raster interrupt
-	lda #RASTER_START+SCROLL_AT_LINE*8-2
+	lda #49
 	sta $d012
 
 	; clear interrupts and ACK irq
@@ -748,24 +827,8 @@ scroller_text_ptr_hi:	.byte 0
 colorwash_delay:	.byte COLORWASH_SPEED
 
 scroller_text:
-        scrcode "   retro moe presents "
-	.byte 65
-	scrcode "the muni race"
-	.byte 66
-	scrcode " the best mountain unicycle racing game for the "
-	.byte 64
-	scrcode "64. "
-	scrcode "people said about this game: 'awesome graphics', 'impressive physics', "
-	scrcode "'best sound ever', 'i want to ride a real unicycle now', "
-	scrcode "'bikes? what a waste of resources!', "
-	scrcode "and much more! "
-	scrcode "credits: code and some gfx by riq, the rest was taken from somewhere... "
-	scrcode "tools: ca65, vim, gimp, project one, vice, wine, vchar64, spritepad... "
-	scrcode "download the source code: https://github.com/ricardoquesada/c64-the-muni-race "
-	scrcode "  come and join us for a muni ride: http://berkeleyunicycling.org "
-	scrcode "  high quality unicycles: http://www.krisholm.com "
-	scrcode "      contact retro moe at : http://retro.moe "
-	scrcode "      press 'space' to return to the main menu...   "
+	scrcode "            sdkbox, the first an only SDK available for all the 64-bit machines, including the commdore 64. "
+	scrcode "  iOS 64-bit support: yes...  android 64-bit: yes...  commodore 64 support: yes  "
 	.byte $ff
 
 char_frames:
