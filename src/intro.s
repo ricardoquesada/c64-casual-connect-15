@@ -152,7 +152,7 @@ irq_bkg_begin:
 	rti			; restores previous PC, status
 
 @raster:
-	.repeat 17
+	.repeat 16
 		nop
 	.endrepeat
 	lda #$01
