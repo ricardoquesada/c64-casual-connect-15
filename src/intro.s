@@ -28,8 +28,8 @@ DEBUG = 0
 SCROLL_AT_LINE = 18
 ROWS_PER_CHAR = 7
 
-RASTER_SDKBOX_START = 40
-RASTER_SDKBOX_END = 180
+RASTER_SDKBOX_START = 110
+RASTER_SDKBOX_END = 112
 RASTER_SCROLLER_START = 50 + SCROLL_AT_LINE*8-1
 
 SCREEN_TOP = $0400 + SCROLL_AT_LINE * 40
@@ -79,11 +79,11 @@ KOALA_BACKGROUND_DATA = KOALA_BITMAP_DATA + $2710
 @mainloop:
 	lda sync50hz
 	beq :+
-	jsr dosync50hz
+	jsr @do_sync50hz
 
 :	lda sync
 	beq :+
-	jsr dosync
+	jsr @do_sync
 
 :
 	; key pressed ?
@@ -95,7 +95,7 @@ KOALA_BACKGROUND_DATA = KOALA_BITMAP_DATA + $2710
 	; do something
 	jmp @mainloop
 
-dosync:
+@do_sync:
 	lda #$00
 	sta sync
 .if (DEBUG & 1)
@@ -104,12 +104,13 @@ dosync:
 	jsr scroll
 	jsr anim_char
 	jsr anim_colorwash
+	jsr anim_sdkbox_color
 .if (DEBUG & 1)
 	inc $d020
 .endif
 	rts
 
-dosync50hz:
+@do_sync50hz:
 	lda #$00
 	sta sync50hz
 .if (DEBUG & 2)
@@ -151,8 +152,9 @@ irq_bkg_begin:
 	rti			; restores previous PC, status
 
 @raster:
-	STABILIZE_RASTER
-
+	.repeat 17
+		nop
+	.endrepeat
 	lda #$01
 	sta $d020
 	sta $d021
@@ -162,7 +164,7 @@ irq_bkg_begin:
 	stx $fffe
 	sty $ffff
 
-	lda #RASTER_SDKBOX_END
+	lda raster_color_end
 	sta $d012
 
 	asl $d019
@@ -203,8 +205,9 @@ irq_bkg_end:
 	rti			; restores previous PC, status
 
 @raster:
-	STABILIZE_RASTER
-
+	.repeat 11
+		nop
+	.endrepeat
 	lda #$00
 	sta $d020
 	sta $d021
@@ -219,7 +222,6 @@ irq_bkg_end:
 
 
 	asl $d019
-	cli
 
 	pla			; restores A, X, Y
 	tay
@@ -302,7 +304,7 @@ irq_scroller:
 	lda #>irq_bkg_begin
 	sta $ffff
 
-	lda #RASTER_SDKBOX_START	; white border must start here
+	lda raster_color_start	; white border must start here
 	sta $d012
 
 	asl $d019
@@ -584,6 +586,29 @@ save_color_bottom = *+1
 	rts
 .endproc
 
+
+;--------------------------------------------------------------------------
+; void anim_sdkbox_color()
+;--------------------------------------------------------------------------
+; moves the white background color of the sdkbox logo
+;--------------------------------------------------------------------------
+.proc anim_sdkbox_color
+	ldx sine_idx
+
+	sec
+	lda #RASTER_SDKBOX_START
+	sbc sine_table,x
+	sta raster_color_start
+
+	clc
+	lda #RASTER_SDKBOX_END
+	adc sine_table,x
+	sta raster_color_end
+
+	inc sine_idx
+	rts
+.endproc
+
 ;--------------------------------------------------------------------------
 ; init(void)
 ;--------------------------------------------------------------------------
@@ -822,6 +847,8 @@ raster_colors_bottom:
 
 TOTAL_RASTER_LINES = raster_colors_bottom-raster_colors_top
 
+raster_color_start:	.byte RASTER_SDKBOX_START
+raster_color_end:	.byte RASTER_SDKBOX_END
 sync:			.byte 0
 sync50hz:		.byte 0
 smooth_scroll_x:	.byte 7
@@ -834,7 +861,7 @@ scroller_text_ptr_hi:	.byte 0
 colorwash_delay:	.byte COLORWASH_SPEED
 
 scroller_text:
-	scrcode "            sdkbox, the first an only sdk available for all the 64-bit / 64 machines "
+	scrcode "            sdkbox, the cure for sdk fatigue. the first and only service available for all the 64 machines: "
 	scrcode "  ios 64-bit support: yes...  android 64-bit: yes...  commodore 64 support: yes!!!    "
 	scrcode "  download sdkbox from sdkbox.com "
 	.byte $ff
@@ -886,6 +913,9 @@ empty_char:
 	.byte %11111111
 	.byte %11111111
 
+sine_idx: .byte $00
+sine_table:
+	.incbin "res/sine_table.bin"
 
 .segment "SIDMUSIC"
 	 .incbin "res/1_45_Tune.sid",$7e
