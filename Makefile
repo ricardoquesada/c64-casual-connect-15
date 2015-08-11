@@ -22,7 +22,6 @@ dist: prg
 	$(C1541) -format "cc15 dist,rq" d64 $(IMAGE)
 	$(C1541) $(IMAGE) -write cc15_exo.prg "the race"
 	$(C1541) $(IMAGE) -list
-	rm -f src/*.o cc15.prg cc15_exo.prg
 
 test: disk
 	$(X64) -moncommands cc15.sym cc15.d64

@@ -912,9 +912,9 @@ scroller_text_ptr_hi:	.byte 0
 colorwash_delay:	.byte COLORWASH_SPEED
 
 scroller_text:
-	scrcode "            sdkbox, the cure for sdk fatigue. the first and only service available for all the 64 machines: "
-	scrcode "  ios 64-bit support: yes...  android 64-bit: yes...  commodore 64 support: yes!!!    "
-	scrcode "  download sdkbox from sdkbox.com "
+	scrcode "            sdkbox, the cure for sdk fatigue. the first and only sdk available for all the 64 machines: "
+	scrcode "  ios 64-bit support: yes.  android 64-bit support: yes.  commodore 64 support: yes!   only us support all the 64 machines... long live the commodore 64"
+	scrcode "    download sdkbox from sdkbox.com "
 	.byte $ff
 
 char_frames:
