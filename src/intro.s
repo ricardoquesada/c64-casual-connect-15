@@ -609,7 +609,7 @@ save_color_bottom = *+1
 	bne @bye		; effect finished ?
 	inc @anim_effect_idx	; set new effect
 	lda @anim_effect_idx
-	cmp #06			; all effects ?
+	cmp #TOTAL_EFFECTS	; all effects ?
 	bne @bye
 	lda #$00
 	sta @anim_effect_idx
@@ -663,6 +663,87 @@ save_color_bottom = *+1
 	inc sine_idx
 	rts
 
+@anim_effect_top_short_fast:
+	ldx sine_idx
+	clc
+	lda #RASTER_SDKBOX_START
+	adc sine_short_fast_table,x
+	sta raster_color_start
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+@anim_effect_bottom_short_fast:
+	ldx sine_idx
+	sec
+	lda #RASTER_SDKBOX_END
+	sbc sine_short_fast_table,x
+	sta raster_color_end
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+@anim_effect_bottom_up:
+	ldx sine_idx
+	sec
+	lda #RASTER_SDKBOX_END
+	sbc sine_half_table,x
+	sta raster_color_end
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+@anim_effect_both_go_down:
+	ldx sine_idx
+	clc
+	lda #RASTER_SDKBOX_START
+	adc sine_half_table,x
+	sta raster_color_start
+	clc
+	lda #RASTER_SDKBOX_END-140
+	adc sine_half_table,x
+	sta raster_color_end
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+@anim_effect_both_go_up:
+	ldx sine_idx
+	sec
+	lda #RASTER_SDKBOX_START+140
+	sbc sine_half_table,x
+	sta raster_color_start
+	sec
+	lda #RASTER_SDKBOX_END
+	sbc sine_half_table,x
+	sta raster_color_end
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+@anim_effect_top_up:
+	ldx sine_idx
+	sec
+	lda #RASTER_SDKBOX_START+140
+	sbc sine_half_table,x
+	sta raster_color_start
+	inx
+	txa
+	and #127
+	sta sine_idx
+	rts
+
+
 @anim_effect_bkg_color:
 	ldx @bkg_colors_idx
 	lda @bkg_colors,x
@@ -693,12 +774,24 @@ save_color_bottom = *+1
 	.byte 0
 
 @anim_jump_table:
+	.addr @anim_effect_bottom_up
+	.addr @anim_effect_both_go_down
+	.addr @anim_effect_both_go_up
+	.addr @anim_effect_both_go_down
+	.addr @anim_effect_top_up
+
+	.addr @anim_effect_top_short_fast
+	.addr @anim_effect_bottom_short_fast
+	.addr @anim_effect_two_colors_fast
 	.addr @anim_effect_two_colors
 	.addr @anim_effect_two_colors_fast
 	.addr @anim_effect_two_colors
 	.addr @anim_effect_top
 	.addr @anim_effect_bottom
 	.addr @anim_effect_bkg_color
+
+TOTAL_EFFECTS = (* - @anim_jump_table) / 2
+
 .endproc
 
 
@@ -1015,6 +1108,10 @@ sine_big_table:
 	.incbin "res/sine_big_table.bin"
 sine_freq4_table:
 	.incbin "res/sine_freq4_table.bin"
+sine_short_fast_table:
+	.incbin "res/sine_l64_table.bin"
+sine_half_table:
+	.incbin "res/sine_half_l128_table.bin"
 
 .segment "SIDMUSIC"
 	 .incbin "res/1_45_Tune.sid",$7e
