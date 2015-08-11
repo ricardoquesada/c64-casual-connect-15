@@ -155,7 +155,7 @@ irq_bkg_begin:
 	.repeat 16
 		nop
 	.endrepeat
-	lda #$01
+	lda sdkbox_bkg_color
 	sta $d020
 	sta $d021
 
@@ -574,7 +574,7 @@ save_color_top = *+1
 	lda raster_colors_bottom+TOTAL_RASTER_LINES-1
 	sta save_color_bottom
 
-	cpx #TOTAL_RASTER_LINES-1
+	ldx #TOTAL_RASTER_LINES-1
 :	lda raster_colors_bottom,x
 	sta raster_colors_bottom+1,x
 	dex
@@ -609,7 +609,7 @@ save_color_bottom = *+1
 	bne @bye		; effect finished ?
 	inc @anim_effect_idx	; set new effect
 	lda @anim_effect_idx
-	cmp #03			; all effects ?
+	cmp #04			; all effects ?
 	bne @bye
 	lda #$00
 	sta @anim_effect_idx
@@ -649,11 +649,38 @@ save_color_bottom = *+1
 	inc sine_idx
 	rts
 
+@anim_effect_bkg_color:
+	ldx @bkg_colors_idx
+	lda @bkg_colors,x
+	sta sdkbox_bkg_color
+
+	inx
+	txa
+	and #$3f
+	sta @bkg_colors_idx
+
+	ldy @bkg_colors,x
+	cpy #$ff
+	rts
+@bkg_colors:
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte 0,0,0,0,1,1,1,1
+	.byte $ff
+@bkg_colors_idx:
+	.byte 0
+
 @anim_effect_idx:
 	.byte 0
 
 @anim_jump_table:
 	.addr @anim_effect_two_colors
+	.addr @anim_effect_bkg_color
 	.addr @anim_effect_top
 	.addr @anim_effect_bottom
 .endproc
@@ -894,12 +921,13 @@ raster_colors_bottom:
 	.byte $01,$01,$01,$01,$07,$07,$0f,$0f
 	.byte $0a,$0a,$08,$08,$02,$02,$09,$09
 	; FIXME: ignore, for overflow
-	.byte 0,0
+	.byte 0
 
 TOTAL_RASTER_LINES = raster_colors_bottom-raster_colors_top
 
 raster_color_start:	.byte RASTER_SDKBOX_START
 raster_color_end:	.byte RASTER_SDKBOX_END
+sdkbox_bkg_color:	.byte 1
 sync:			.byte 0
 sync50hz:		.byte 0
 smooth_scroll_x:	.byte 7
