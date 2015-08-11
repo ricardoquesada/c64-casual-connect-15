@@ -609,7 +609,7 @@ save_color_bottom = *+1
 	bne @bye		; effect finished ?
 	inc @anim_effect_idx	; set new effect
 	lda @anim_effect_idx
-	cmp #04			; all effects ?
+	cmp #06			; all effects ?
 	bne @bye
 	lda #$00
 	sta @anim_effect_idx
@@ -649,6 +649,20 @@ save_color_bottom = *+1
 	inc sine_idx
 	rts
 
+@anim_effect_two_colors_fast:
+	ldx sine_idx
+	clc
+	lda #RASTER_SDKBOX_START
+	adc sine_freq4_table,x
+	sta raster_color_start
+
+	sec
+	lda #RASTER_SDKBOX_END
+	sbc sine_freq4_table,x
+	sta raster_color_end
+	inc sine_idx
+	rts
+
 @anim_effect_bkg_color:
 	ldx @bkg_colors_idx
 	lda @bkg_colors,x
@@ -680,9 +694,11 @@ save_color_bottom = *+1
 
 @anim_jump_table:
 	.addr @anim_effect_two_colors
-	.addr @anim_effect_bkg_color
+	.addr @anim_effect_two_colors_fast
+	.addr @anim_effect_two_colors
 	.addr @anim_effect_top
 	.addr @anim_effect_bottom
+	.addr @anim_effect_bkg_color
 .endproc
 
 
@@ -997,6 +1013,8 @@ sine_table:
 	.incbin "res/sine_table.bin"
 sine_big_table:
 	.incbin "res/sine_big_table.bin"
+sine_freq4_table:
+	.incbin "res/sine_freq4_table.bin"
 
 .segment "SIDMUSIC"
 	 .incbin "res/1_45_Tune.sid",$7e
