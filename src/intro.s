@@ -1109,7 +1109,7 @@ sine_big_table:
 sine_freq4_table:
 	.incbin "res/sine_freq4_table.bin"
 sine_short_fast_table:
-	.incbin "res/sine_l64_table.bin"
+	.incbin "res/sine_l128_table.bin"
 sine_half_table:
 	.incbin "res/sine_half_l128_table.bin"
 
