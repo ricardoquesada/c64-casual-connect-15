@@ -28,8 +28,8 @@ DEBUG = 0
 SCROLL_AT_LINE = 18
 ROWS_PER_CHAR = 7
 
-RASTER_SDKBOX_START = 110
-RASTER_SDKBOX_END = 112
+RASTER_SDKBOX_START = 30
+RASTER_SDKBOX_END = 190
 RASTER_SCROLLER_START = 50 + SCROLL_AT_LINE*8-1
 
 SCREEN_TOP = $0400 + SCROLL_AT_LINE * 40
@@ -593,21 +593,72 @@ save_color_bottom = *+1
 ; moves the white background color of the sdkbox logo
 ;--------------------------------------------------------------------------
 .proc anim_sdkbox_color
-	ldx sine_idx
 
-	sec
+	lda @anim_effect_idx
+	asl
+	tax
+
+	lda @anim_jump_table,x
+	ldy @anim_jump_table+1,x
+	sta @jump_to
+	sty @jump_to+1
+
+@jump_to = *+1
+	jsr $caca		; self-modifying
+
+	bne @bye		; effect finished ?
+	inc @anim_effect_idx	; set new effect
+	lda @anim_effect_idx
+	cmp #03			; all effects ?
+	bne @bye
+	lda #$00
+	sta @anim_effect_idx
+
+@bye:
+	rts
+
+@anim_effect_two_colors:
+	ldx sine_idx
+	clc
 	lda #RASTER_SDKBOX_START
-	sbc sine_table,x
+	adc sine_table,x
 	sta raster_color_start
 
-	clc
+	sec
 	lda #RASTER_SDKBOX_END
-	adc sine_table,x
+	sbc sine_table,x
 	sta raster_color_end
-
 	inc sine_idx
 	rts
+
+@anim_effect_top:
+	ldx sine_idx
+	clc
+	lda #RASTER_SDKBOX_START
+	adc sine_big_table,x
+	sta raster_color_start
+	inc sine_idx
+	rts
+
+@anim_effect_bottom:
+	ldx sine_idx
+	sec
+	lda #RASTER_SDKBOX_END
+	sbc sine_big_table,x
+	sta raster_color_end
+	inc sine_idx
+	rts
+
+@anim_effect_idx:
+	.byte 0
+
+@anim_jump_table:
+	.addr @anim_effect_two_colors
+	.addr @anim_effect_top
+	.addr @anim_effect_bottom
 .endproc
+
+
 
 ;--------------------------------------------------------------------------
 ; init(void)
@@ -916,6 +967,8 @@ empty_char:
 sine_idx: .byte $00
 sine_table:
 	.incbin "res/sine_table.bin"
+sine_big_table:
+	.incbin "res/sine_big_table.bin"
 
 .segment "SIDMUSIC"
 	 .incbin "res/1_45_Tune.sid",$7e
