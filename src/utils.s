@@ -176,6 +176,7 @@
 NTSC_TIMER := $4fb4			; value used in zoo mania
 ;NTSC_TIMER = $49f6			; value from codebase
 PAL_TIMER = $4cc7			; 312 * 63 = 19656 = $4cc8 - 1 = $4cc7
+PAL_N_TIMER = $49ea			; 19565 * (0.98524 / 1.02344)
 
 .export sync_irq_timer
 .proc sync_irq_timer
